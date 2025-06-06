@@ -4,12 +4,12 @@ class BasicPhysicsSimulation {
   constructor() {
     this.velocity = new THREE.Vector3();
     this.angularVelocity = 0;
-    this.acceleration = 0.008;
-    this.deceleration = 0.99;
+    this.acceleration = 0.015; // Increased for better response
+    this.deceleration = 0.98;
     this.brakingDeceleration = 0.95;
     this.maxSpeed = 0.5;
-    this.turnSpeed = 0.03;
-    this.grip = 0.7;
+    this.turnSpeed = 0.05; // Increased for better steering
+    this.grip = 0.85; // Increased for better handling
     this.position = new THREE.Vector3();
     this.rotation = new THREE.Quaternion();
     this.wheelRotation = 0;
@@ -41,7 +41,7 @@ class BasicPhysicsSimulation {
     const slideAmount = 1 - Math.abs(dotProduct);
     
     // Apply deceleration based on surface grip
-    const currentDeceleration = input.throttle === 0 ? this.brakingDeceleration : this.deceleration;
+    const currentDeceleration = input.brake ? this.brakingDeceleration : this.deceleration;
     this.velocity.multiplyScalar(currentDeceleration - (slideAmount * (1 - this.grip)));
     
     // Handle steering
@@ -72,7 +72,7 @@ class BasicPhysicsSimulation {
     const suspensionDamping = 0.3;
     const heightDifference = this.position.y - groundHeight;
     this.suspensionHeight = Math.sin(Date.now() * 0.01) * 0.02 * speed;
-    this.position.y = groundHeight + Math.abs(this.suspensionHeight);
+    this.position.y = groundHeight + Math.abs(this.suspensionHeight) + 1; // Added +1 to keep car above ground
     
     // Detect collisions (simplified)
     const now = Date.now();
@@ -146,7 +146,7 @@ export class GameLogic {
 
     // Update physics based on input
     const input = {
-      throttle: this.keys.ArrowUp ? 1 : (this.keys.ArrowDown ? -1 : 0),
+      throttle: this.keys.ArrowUp ? 1 : (this.keys.ArrowDown ? -0.5 : 0), // Reduced reverse speed
       steering: this.keys.ArrowLeft ? -1 : (this.keys.ArrowRight ? 1 : 0),
       brake: this.keys.Space
     };
@@ -158,10 +158,14 @@ export class GameLogic {
     this.carModel.position.copy(physicsState.position);
     this.carModel.quaternion.copy(physicsState.rotation);
 
-    // Update wheels (assuming the car model has wheel meshes named appropriately)
+    // Update wheels
     this.carModel.traverse((child) => {
       if (child.name.toLowerCase().includes('wheel')) {
         child.rotation.x = physicsState.wheelRotation;
+        // Add steering rotation for front wheels
+        if (child.name.toLowerCase().includes('front')) {
+          child.rotation.y = input.steering * Math.PI / 4;
+        }
       }
     });
 

@@ -153,7 +153,7 @@ class Game {
       this.car = gltf.scene;
       
       // Scale down the car model
-      this.car.scale.set(0.2, 0.2, 0.2);
+      this.car.scale.set(0.07, 0.07, 0.07);
       
       this.car.traverse((child) => {
         if (child.isMesh) {
@@ -164,7 +164,7 @@ class Game {
       });
       
       // Position car at starting position - lower to ground and adjust for scale
-      this.car.position.set(0, 0.02, 0); // Very close to ground but not intersecting
+      this.car.position.set(-7, 1, 0); // Very close to ground but not intersecting
       this.scene.add(this.car);
       
       // Position headlights relative to car - adjust for new scale
@@ -204,11 +204,11 @@ class Game {
       
       // Update camera to follow car from behind
       const carDirection = new THREE.Vector3(0, 0, -1).applyQuaternion(this.car.quaternion);
-      const idealOffset = new THREE.Vector3(0, 1.5, 4); // Height and distance behind car
+      const idealOffset = new THREE.Vector3(0, 2, 6); // Adjusted height and distance behind car
       idealOffset.applyQuaternion(this.car.quaternion);
       idealOffset.add(this.car.position);
       
-      this.camera.position.lerp(idealOffset, 0.1);
+      this.camera.position.lerp(idealOffset, 0.05); // Smoother camera movement
       const lookAtPos = this.car.position.clone().add(carDirection.multiplyScalar(10));
       this.camera.lookAt(lookAtPos);
     }
