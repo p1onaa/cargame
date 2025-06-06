@@ -58,38 +58,51 @@ export class AudioManager {
     return source;
   }
 
+  stopSound(name) {
+    if (this.sounds[name]?.source) {
+      this.sounds[name].source.stop();
+      this.sounds[name].source = null;
+    }
+  }
+
   update(carState) {
     if (!this.isInitialized) return;
 
-    // Engine sound
-    if (!this.sounds.engine.source || !this.sounds.engine.source.playing) {
-      this.playSound('engine', true);
+    // Engine sound - only when moving
+    if (carState.speed > 0.01) {
+      if (!this.sounds.engine.source || !this.sounds.engine.source.playing) {
+        this.playSound('engine', true);
+      }
+      this.sounds.engine.gain.gain.value = 0.3 + (carState.speed * 0.7);
+    } else {
+      this.stopSound('engine');
     }
-    this.sounds.engine.gain.gain.value = 0.3 + (carState.speed * 0.7);
 
-    // Tire sound
+    // Tire sound - only when moving at sufficient speed
     if (carState.speed > 0.1) {
       if (!this.sounds.tires.source || !this.sounds.tires.source.playing) {
         this.playSound('tires', true);
       }
       this.sounds.tires.gain.gain.value = Math.min(carState.speed * 0.5, 1);
+    } else {
+      this.stopSound('tires');
     }
 
-    // Skidding sound
-    if (carState.isSkidding) {
+    // Skidding sound - only during actual skidding
+    if (carState.isSkidding && carState.speed > 0.1) {
       if (!this.sounds.skidding.source || !this.sounds.skidding.source.playing) {
         this.playSound('skidding', true);
       }
-    } else if (this.sounds.skidding.source) {
-      this.sounds.skidding.source.stop();
+    } else {
+      this.stopSound('skidding');
     }
 
-    // Suspension sound
-    if (carState.isSuspensionActive) {
+    // Suspension sound - only when active
+    if (carState.isSuspensionActive && carState.speed > 0.05) {
       this.playSound('suspension');
     }
 
-    // Collision sound
+    // Collision sound - only on impact
     if (carState.hasCollision) {
       this.playSound('collision');
     }
