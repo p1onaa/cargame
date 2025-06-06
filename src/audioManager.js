@@ -1,8 +1,16 @@
 export class AudioManager {
   constructor() {
-    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    this.audioContext = null;
     this.sounds = {};
-    this.loadSounds();
+    this.isInitialized = false;
+  }
+
+  async initialize() {
+    if (this.isInitialized) return;
+    
+    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    await this.loadSounds();
+    this.isInitialized = true;
   }
 
   async loadSounds() {
@@ -32,7 +40,7 @@ export class AudioManager {
   }
 
   playSound(name, loop = false) {
-    if (!this.sounds[name]) return;
+    if (!this.isInitialized || !this.sounds[name]) return;
     
     // Stop existing sound if playing
     if (this.sounds[name].source) {
@@ -51,6 +59,8 @@ export class AudioManager {
   }
 
   update(carState) {
+    if (!this.isInitialized) return;
+
     // Engine sound
     if (!this.sounds.engine.source || !this.sounds.engine.source.playing) {
       this.playSound('engine', true);

@@ -31,10 +31,9 @@ class Game {
     // Add lights
     this.setupLights();
     
-    // Setup controls
+    // Setup controls (disabled for car follow camera)
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.05;
+    this.controls.enabled = false;
     
     // Load models
     this.loadModels();
@@ -42,6 +41,11 @@ class Game {
     // Initialize game logic and audio
     this.gameLogic = new GameLogic(this.scene);
     this.audioManager = new AudioManager();
+
+    // Add click listener to initialize audio
+    document.addEventListener('click', () => {
+      this.audioManager.initialize();
+    }, { once: true });
     
     // Start animation loop
     this.animate();
@@ -147,6 +151,10 @@ class Game {
     // Load car model
     this.loader.load('/boltcar.glb', (gltf) => {
       this.car = gltf.scene;
+      
+      // Scale down the car model
+      this.car.scale.set(0.2, 0.2, 0.2);
+      
       this.car.traverse((child) => {
         if (child.isMesh) {
           child.castShadow = true;
@@ -155,13 +163,13 @@ class Game {
         }
       });
       
-      // Position car at starting position
-      this.car.position.set(0, 0.1, 0); // Slightly above ground to prevent z-fighting
+      // Position car at starting position - lower to ground and adjust for scale
+      this.car.position.set(0, 0.02, 0); // Very close to ground but not intersecting
       this.scene.add(this.car);
       
-      // Position headlights relative to car
-      this.headlights.left.position.set(-0.5, 0.5, -1);
-      this.headlights.right.position.set(0.5, 0.5, -1);
+      // Position headlights relative to car - adjust for new scale
+      this.headlights.left.position.set(-0.1, 0.1, -0.2);
+      this.headlights.right.position.set(0.1, 0.1, -0.2);
       this.car.add(this.headlights.left);
       this.car.add(this.headlights.right);
       
@@ -194,15 +202,17 @@ class Game {
       this.gameLogic.update();
       this.audioManager.update(this.gameLogic.getCarState());
       
-      // Update camera to follow car
-      const cameraOffset = new THREE.Vector3(0, 3, 8);
-      const carPosition = this.car.position.clone();
-      const cameraPosition = carPosition.clone().add(cameraOffset);
-      this.camera.position.lerp(cameraPosition, 0.1);
-      this.camera.lookAt(carPosition);
+      // Update camera to follow car from behind
+      const carDirection = new THREE.Vector3(0, 0, -1).applyQuaternion(this.car.quaternion);
+      const idealOffset = new THREE.Vector3(0, 1.5, 4); // Height and distance behind car
+      idealOffset.applyQuaternion(this.car.quaternion);
+      idealOffset.add(this.car.position);
+      
+      this.camera.position.lerp(idealOffset, 0.1);
+      const lookAtPos = this.car.position.clone().add(carDirection.multiplyScalar(10));
+      this.camera.lookAt(lookAtPos);
     }
     
-    this.controls.update();
     this.renderer.render(this.scene, this.camera);
   }
 }
